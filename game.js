@@ -1,12 +1,16 @@
 
 $(function  () {
+	var $wrap = $(".wrap");
 	var $game_container = $(".game-container")
 	var $tile_container = $(".tile-container");
+	var $helper = $(".helper");
+	var $startBtn = $(".helper .start");
 	var $message = $(".game-message");
 	var $tile_move = $(".tile-move");
 	var $tile_empty = $(".tile-empty");
 	var $step = $(".step");
-	var $restart = $(".game-message .lower");
+	var $keep_playing_btn = $(".game-message .lower .keep-playing-button");
+	var $retry_btn = $(".game-message .lower .retry-button");
 	var $newGame = $(".new");
 	var $level = $(".level");
 	var numberX = 4,numberY = 4;
@@ -16,6 +20,7 @@ $(function  () {
 	var step = 0;
 	var successNum = 0;
 	var level = 1;
+	var timeLimt = 0;
 	var randomArray = [];//[numberX*numberY]
 	
 	Init();
@@ -25,10 +30,13 @@ $(function  () {
 		moveRandom();
 		setposition();
 		calculateTime();
+		Event ();
 		setlevel(1);
+		$helper.addClass("helper-visiable");
 	}
 
 	function creatTile(){
+		str = "";
 		for (var i = 1; i <= numberX; i++) {
 			for (var j = 1; j <= numberY; j++) {
 				var n = (i-1)*numberX+j ;
@@ -68,8 +76,8 @@ $(function  () {
 
 	function moveRandom(){
 	    for (var i = 1 ; i <=numberX*numberY; i++) {
-	    	// randomArray[i] = i; //error
-	    	randomArray.push(i);
+	    	 randomArray[i] = i; //error
+	    	//randomArray.push(i); //restart error
 	    	// console.log(i)
 		}
 		randomArray.sort(function(){ return 0.5 - Math.random() }) ;
@@ -79,68 +87,111 @@ $(function  () {
 		});	
 
 	}	
+	function Event () {
+		var x = 0;
+		$(".tile").on('swipeLeft',function(e){
+			// $(this).removeClass("tile-position-4-1").addClass("tile-position-3-1");		
+			// $(this).removeClass("tile-empty");
+			tileExchangeimg($(this).index()-x, $(this).index()-x-4, e.type);
+		}).on('swipeRight',function(e){		
+			// $(this).addClass("tile-empty");
+			tileExchangeimg($(this).index()-x,  $(this).index()-x+4, e.type);
+		}).on('swipeUp',function(e){
 
-	var x = 0;
-	$(".tile").on('swipeLeft',function(e){
-		// $(this).removeClass("tile-position-4-1").addClass("tile-position-3-1");		
-		// $(this).removeClass("tile-empty");
-		tileExchangeimg($(this).index()-x, $(this).index()-x-4, e.type);
-	}).on('swipeRight',function(e){		
-		// $(this).addClass("tile-empty");
-		tileExchangeimg($(this).index()-x,  $(this).index()-x+4, e.type);
-	}).on('swipeUp',function(e){
+			tileExchangeimg($(this).index()-x,  $(this).index()-x-1, e.type);
+		}).on('swipeDown',function(e){
+			tileExchangeimg($(this).index()-x,  $(this).index()-x+1, e.type);
+		});		// body...
+	}
 
-		tileExchangeimg($(this).index()-x,  $(this).index()-x-1, e.type);
-	}).on('swipeDown',function(e){
-		tileExchangeimg($(this).index()-x,  $(this).index()-x+1, e.type);
+	$keep_playing_btn.on("click",keepPlaying);
+	$retry_btn.on("click",restart);
+	$newGame.on("click",restart);
+	$startBtn.on("click",function(){
+		$helper.removeClass(".helper-visiable");
+		$helper.hide();
 	});
 
-	$restart.on("click",restart);
-	$newGame.on("click",restart);
+	function restart(){
+		$game_container.removeClass("success");
+		$message.hide();
+		creatTile();
+		moveRandom();
+		setposition();
+		calculateTime();
+		Event ();
+		setlevel(level);
+		addSteps(0);
+	}
+	 
+	function keepPlaying () {
+	 	$game_container.removeClass("success");
+		$message.hide();
+		creatTile();
+		moveRandom();
+		setposition();
+		calculateTime();
+		Event ();
+		setlevel(level);
+		addSteps(0);	
+	} 
+
 	function tileExchangeimg(index1,index2,type){
+		$(".tile").removeClass("move-animate");
 		if(index1>=0 && index1<=15 && index2>=0 && index2<=15){
 			var a_bgp = $(".tile").eq(index1).css("background-position");
 			var b_bgp = $(".tile").eq(index2).css("background-position");
 			// console.log(index1,index2,type,a_bgp,b_bgp);
 
-			$(".tile").eq(index1).animate({'background-position': b_bgp},100,"easeOutBack");
-			$(".tile").eq(index2).animate({'background-position': a_bgp},100,"easeOutBack");
+			$(".tile").eq(index1).animate({'background-position': b_bgp},50,"easeOutBack");
+			$(".tile").eq(index2).animate({'background-position': a_bgp},50,"easeOutBack");
 
+			$(".tile").eq(index1).addClass("move-animate");
+			$(".tile").eq(index2).addClass("move-animate");
 			validate();
-			addSteps();
+			addSteps(successNum);
 		}
 	}
 
-	function addSteps(){
+	function addSteps(successNum){
 		step ++;
 		// $step.html(step);
 		var zz = Math.ceil(successNum*100/16)+"%" ;
 		if(successNum ==16){
 			zz = "100%";
 		}
-		$step.html(zz+"<div class=\"addition\">*</div>");
+		if(successNum ==0){
+			$step.html(zz);
+		}else{
+			$step.html(zz+"<div class=\"addition\">*</div>");
+		}
+		
 	}
 	
 	function calculateTime(){
 		var second = minute = hour = "0";
-		var time = 0;
-		setInterval(function(){
-			time ++;
-			if(time < 60){
-				second = time;
-			}else if(time < 3600){
-				minute = parseInt(time/60);
-				second = time%60;
-			}else{
-				hour = parseInt(time/3600);
-				var tempT = time%3600;
-				minute = parseInt(tempT/60);
-				second = tempT%60;			
-			}
-			$(".time").html(hour+":"+minute+":"+second);
-			
-			
-		},1000);
+		
+		if(level>3 && timeLimt<200){
+			timeLimt = 0;
+			setInterval(function(){
+				timeLimt ++;
+				if(timeLimt < 60){
+					second = timeLimt;
+				}else if(timeLimt < 3600){
+					minute = parseInt(timeLimt/60);
+					second = timeLimt%60;
+				}else{
+					hour = parseInt(timeLimt/3600);
+					var tempT = timeLimt%3600;
+					minute = parseInt(tempT/60);
+					second = tempT%60;			
+				}
+				$(".time").html(hour+":"+minute+":"+second);
+				
+				
+			},1000);			
+		}
+
 	}
 
 	function validate(){
@@ -159,9 +210,9 @@ $(function  () {
 			$game_container.addClass("success");
 			$message.find(".word").html("You Win!");
 			$message.removeClass("game-over");
-			$message.show(1000);
+			$message.show(1500);
 			level++;
-			setlevel (level);
+			
 		}else{
 			$game_container.removeClass("success");
 			$message.hide();
@@ -170,16 +221,16 @@ $(function  () {
 	function setlevel (level) {
 		$level.html("level"+level);
 		for (var i = 1; i < 7; i++) {
-			$game_container.removeClass("level-"+i);
+			$wrap.removeClass("level-"+i);
 		};
-		$game_container.addClass("level-"+level);
+		if (level<7) {
+			$wrap.addClass("level-"+level);
+		}else{
+			$wrap.addClass("level-n");
+		} 
+		
 	}
-	function restart(){
-		$game_container.removeClass("success");
-		$message.hide();
-		Init();
-		level++;
-	}
+
 
 	function exchangeSkin (skin) {
 		// body...
